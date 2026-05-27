@@ -1,0 +1,104 @@
+
+1. users              (no foreign keys, independent)
+2. categories         (no foreign keys, independent)
+4. books              (needs users and categories)
+5. transactions       (needs users and books)
+6. activity_logs      (needs users and books)
+
+// users
+
+Schema::create('users', function (Blueprint $table) {
+    $table->id();
+    $table->string('fname', 100);
+    $table->string('lname', 100);
+    $table->string('email')->unique();
+    $table->string('password');
+user    $table->enum('status', ['active', 'inactive'])->default('active');
+    $table->decimal('balance', 10, 2)->default(0.00);
+    $table->timestamps();
+});
+
+Schema::create('password_reset_tokens', function (Blueprint $table) {
+    $table->string('email')->primary();
+    $table->string('token');
+    $table->timestamp('created_at')->nullable();
+});
+
+Schema::create('sessions', function (Blueprint $table) {
+    $table->string('id')->primary();
+    $table->foreignId('user_id')->nullable()->index();
+    $table->string('ip_address', 45)->nullable();
+    $table->text('user_agent')->nullable();
+    $table->longText('payload');
+    $table->integer('last_activity')->index();
+});
+
+// categories
+
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100)->unique();
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->text('description')->nullable();
+            $table->foreignId('requested_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+        });
+
+//books
+
+          Schema::create('books', function (Blueprint $table) {
+          $table->id();
+          $table->foreignId('user_id')->nullable()->constrained()->cascadeOnUpdate()->nullOnDelete();
+          $table->foreignId('category_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
+          $table->string('title');
+          $table->string('author', 150);
+          $table->string('cover_image', 500)->nullable();
+          $table->string('file_path', 500);
+          $table->text('description')->nullable();
+          $table->enum('access_type', ['free', 'paid'])->default('free');
+          $table->decimal('price', 8, 2)->default(0.00);
+          $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+          $table->text('rejection_reason')->nullable();
+          $table->timestamps();
+      });
+    
+
+// transactions
+
+Schema::create('transactions', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnUpdate()->cascadeOnDelete();
+    $table->foreignId('book_id')->constrained()->cascadeOnUpdate()->cascadeOnDelete();
+    $table->decimal('amount', 8, 2);
+    $table->decimal('publisher_cut', 8, 2);
+    $table->decimal('platform_cut', 8, 2);
+    $table->enum('status', ['pending', 'completed', 'refunded'])->default('completed');
+    $table->timestamps();
+});
+
+//activity 
+
+Schema::create('activity_logs', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->cascadeOnUpdate()->cascadeOnDelete();
+    $table->foreignId('book_id')->nullable()->constrained()->cascadeOnUpdate()->cascadeOnDelete();
+    $table->enum('action', ['uploaded', 'purchased', 'downloaded'])->default('downloaded');
+    $table->string('description')->nullable();
+    $table->timestamp('created_at')->useCurrent();
+
+    $table->index('user_id', 'idx_activity_user');
+    $table->index('book_id', 'idx_activity_book');
+    $table->index('created_at', 'idx_activity_created');
+});
+
+others
+
+// attach categories to a book
+$book->categories()->attach([1, 2, 3]);
+
+// get all categories of a book
+$book->categories;
+
+// get all books in a category
+$category->books;
+
